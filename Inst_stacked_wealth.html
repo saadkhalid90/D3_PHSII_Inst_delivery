@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+
+<meta name="robots" content="noindex">
+<html>
+<head>
+  <script src="http://d3js.org/d3.v3.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/1.13.0/d3-legend.min.js"></script>
+  <meta charset="utf-8">
+  <title>Stacked 100% bar chart</title>
+  <style id="jsbin-css">
+    svg {
+      background: #FFF;
+      opacity: 0.99;
+    }
+
+    rect {
+      shape-rendering : crispEdges;
+    }
+
+    .axis path,
+    .axis line {
+      fill: none;
+      stroke: #000;
+      shape-rendering: crispEdges;
+    }
+
+    .axis text {
+      font-family: sans-serif;
+      font-size: 11px;
+    }
+
+    .grid path,
+    .grid line {
+      fill: none;
+      stroke: #ccc;
+      shape-rendering: crispEdges;
+    }
+    .label {
+      font-family: sans-serif;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+<script id="jsbin-javascript">
+
+// reading in data asynchronously (the name in within function is the name the read dataset takes)
+d3.csv('inst_del_Wealth.csv', function(inst_wealth){
+  inst_wealth.forEach(function(d){
+    // converting the text numbers to numbers/ numbers
+    d.Public = +d.Public;
+    d.Private = +d.Private;
+    d.Home = +d.Home;
+  })
+  // printing the read in data
+  console.log(inst_wealth);
+  console.log(inst_wealth.length);
+
+  // defining the dimensions of the plot (and the margins)
+  var width = 680;
+  var height = 150;
+
+  var margins = {
+    top: 10,
+    bottom: 30,
+    left: 60,
+    right: 70
+  };
+
+  // set up a canvas for teh chart
+  var svg = d3.select("body")
+              .append("svg")
+              .attr("width", width)
+              .attr("height", height);
+
+  // adjusting the width and height according to margins
+  width = width - margins.left - margins.right;
+  height = height - margins.top - margins.bottom;
+
+  // chart is where we draw all our shit
+  var chart = svg.append("g")
+    .classed("display", true)
+    .attr("transform", "translate(" + margins.left + "," + margins.top + ")");
+
+  // defining scales now:
+  xScale = d3.scale.linear()
+                  .domain([0, 100])
+                  .range([0, width]);
+  yScale = d3.scale.ordinal()
+                  .domain(inst_wealth.map(function(d){
+                    return d.Wealth_QTL;
+                  }))
+                  .rangeBands([height, 0]);
+
+  // defining axes now (these axis will have to be called later in the drawAxis function)
+  xAxis = d3.svg.axis()
+            .scale(xScale)
+            .orient("bottom");
+
+  yAxis = d3.svg.axis()
+            .scale(yScale)
+            .orient("left");
+
+  xGridlines = d3.svg.axis()
+                  .scale(xScale)
+                  .tickSize(-height, 0, 0)
+                  .tickFormat("")
+                  .orient("bottom");
+
+  chart.append("g")
+      .call(xGridlines)
+      .classed("x grid", true)
+      .attr("transform", "translate(0," + height + ")");
+
+  // draw x axis
+  chart.append("g")
+      .call(xAxis)
+      .classed("x axis", true)
+      .attr("transform", "translate(0," + height + ")");
+
+  // draw y axis
+  chart.append("g")
+      .call(yAxis)
+      .classed("y axis", true)
+      .attr("transform", "translate(0, 0)")
+      // .append("text")
+      // .classed("y axis label", true)
+      // .attr("x", 0)
+      // .attr("y", 0)
+      // .style("text-anchor", "middle")
+      // .attr("transform", "translate(-60," + height/ 2 + ") rotate(-90)")
+      // .text("Wealth Quintile")
+      // .style("font-size", 13)
+      // .style("font-weight", 500);
+
+  // bar padding between bars
+  var barPadding = 3;
+  //enter phase:
+  chart.selectAll(".Home")
+       .data(inst_wealth)
+       .enter()
+       .append("rect")
+       .classed("Home", true);
+
+  //update phase
+  chart.selectAll(".Home")
+       .attr("x", 0)
+       .attr("y", function(d, i){
+         return ((inst_wealth.length - i - 1) * (height/ inst_wealth.length)) + barPadding;
+       })
+       .attr("width", function(d, i){
+         return xScale(d.Home);
+       })
+       .attr("height", function (d, i){
+         return (height/ inst_wealth.length) - (2 * barPadding);
+       })
+       .attr("fill", "#2ecc71")
+       .attr("opacity", 0.98)
+
+  chart.selectAll(".bar-lab-home")
+        .data(inst_wealth)
+        .enter()
+        .append("text")
+        .classed("bar-label-home", true)
+        .attr("x", function(d, i){
+          return 0 + xScale(d.Home)/ 2;
+        })
+        .attr("y", function(d, i){
+          return ((inst_wealth.length - i - 1) * (height/ inst_wealth.length)) + barPadding + ((height/ inst_wealth.length) - (2 * barPadding))/2;
+        })
+        .text(function(d, i){
+          return d.Home + "%";
+        })
+        .style("text-anchor", "middle")
+        .style("alignment-baseline", "middle")
+        .style("font-size", 12)
+        .style("font-family", "sans-serif")
+        .style("vertical-align", "middle");
+
+       // exit phase
+  chart.selectAll(".Home")
+      .data(inst_wealth)
+      .exit()
+      .remove();
+
+  chart.selectAll(".Public")
+      .data(inst_wealth)
+      .enter()
+      .append("rect")
+      .attr("class", "Public");
+
+  chart.selectAll(".Public")
+      .attr("x", function(d, i){
+        return xScale(d.Home);
+      })
+      .attr("y", function(d, i){
+        return ((inst_wealth.length - i - 1) * (height/ inst_wealth.length)) + barPadding;
+      })
+      .attr("width", function(d, i){
+        return xScale(d.Public);
+      })
+      .attr("height", function (d, i){
+        return (height/ inst_wealth.length) - (2 * barPadding);
+      })
+      .attr("fill", "#b05ffc")
+      .attr("opacity", 0.98);
+
+  chart.selectAll(".bar-lab-public")
+        .data(inst_wealth)
+        .enter()
+        .append("text")
+        .classed("bar-label-public", true)
+        .attr("x", function(d, i){
+          return xScale(d.Home) + xScale(d.Public)/2;
+        })
+        .attr("y", function(d, i){
+          return ((inst_wealth.length - i - 1) * (height/ inst_wealth.length)) + barPadding + ((height/ inst_wealth.length) - (2 * barPadding))/2;
+        })
+        .text(function(d, i){
+          return d.Public + "%";
+        })
+        .style("text-anchor", "middle")
+        .style("alignment-baseline", "middle")
+        .style("font-size", 12)
+        .style("font-family", "sans-serif");
+
+  chart.selectAll(".Public")
+      .data(inst_wealth)
+      .exit()
+      .remove();
+
+  chart.selectAll(".Private")
+      .data(inst_wealth)
+      .enter()
+      .append("rect")
+      .attr("class", "Private");
+
+  chart.selectAll(".Private")
+      .attr("x", function(d, i){
+        return xScale(d.Home + d.Public);
+      })
+      .attr("y", function(d, i){
+        return ((inst_wealth.length - i - 1) * (height/ inst_wealth.length)) + barPadding;
+      })
+      .attr("width", function(d, i){
+        return xScale(d.Private);
+      })
+      .attr("height", function (d, i){
+        return (height/ inst_wealth.length) - (2 * barPadding);
+      })
+      .attr("fill", "#2abb9b")
+      .attr("opacity", 0.98);
+
+  chart.selectAll(".bar-lab-private")
+        .data(inst_wealth)
+        .enter()
+        .append("text")
+        .classed("bar-label-private", true)
+        .attr("x", function(d, i){
+          return xScale(d.Home + d.Public) + xScale(d.Private)/2;
+        })
+        .attr("y", function(d, i){
+          return ((inst_wealth.length - i - 1) * (height/ inst_wealth.length)) + barPadding + ((height/ inst_wealth.length) - (2 * barPadding))/2;
+        })
+        .text(function(d, i){
+          return d.Private + "%";
+        })
+        .style("text-anchor", "middle")
+        .style("alignment-baseline", "middle")
+        .style("font-size", 12)
+        .style("font-family", "sans-serif");
+
+  chart.selectAll(".Private")
+      .data(inst_wealth)
+      .exit()
+      .remove();
+
+  // var ordinal = d3.scale.ordinal()
+  //                       .domain(["Home", "Public", "Private"])
+  //                       .range([ "#2ecc71", "#2980b9", "#b889d4"]);
+  //
+  // chart.append("g")
+  //     .attr("class", "legendOrdinal")
+  //     .attr("transform", "translate("+ (width + 5) +", 0)");
+  //
+  // var legendOrdinal = d3.legend.color()
+  //                             //d3 symbol creates a path-string, for example
+  //                             //"M0,-8.059274488676564L9.306048591020996,
+  //                             //8.059274488676564 -9.306048591020996,8.059274488676564Z"
+  //                             //.shape("path", d3.svg.symbol().type("triangle-up").size(150)())
+  //                             .shapePadding(5)
+  //                             .scale(ordinal);
+  //
+  // svg.select(".legendOrdinal")
+  //   .call(legendOrdinal);
+
+})
+
+</script>
+</body>
+</html>
